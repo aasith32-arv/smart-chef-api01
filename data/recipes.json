@@ -125,3 +125,130 @@
       "Crack eggs into the mixture and chop everything together using metal blades.",
       "Season with curry powder and salt, toss for 5 minutes, and serve hot."
     ]
+  },
+  {
+    "name": "Nasi Goreng",
+    "category": "Rice",
+    "description": "Indonesian-style fried rice with sweet soy sauce, shallots, and egg.",
+    "serving_size": 4,
+    "image": "https://example.com/images/nasi-goreng.jpg",
+    "ingredients": [
+      {"name": "Rice", "quantity": 500, "unit": "g"},
+      {"name": "Chicken", "quantity": 300, "unit": "g"},
+      {"name": "Egg", "quantity": 2, "unit": "piece"},
+      {"name": "Onion", "quantity": 120, "unit": "g"},
+      {"name": "Garlic", "quantity": 20, "unit": "g"},
+      {"name": "Oil", "quantity": 60, "unit": "ml"},
+      {"name": "Soy Sauce", "quantity": 40, "unit": "ml"},
+      {"name": "Salt", "quantity": 8, "unit": "g"}
+    ],
+    "steps": [
+      "Cook rice and cool overnight if possible for best texture.",
+      "Sauté minced garlic and sliced onions in oil.",
+      "Add diced chicken and cook until done.",
+      "Stir in rice, soy sauce, and salt.",
+      "Push rice aside, fry eggs, then mix everything together.",
+      "Serve with cucumber slices and krupuk."
+    ]
+  },
+  {
+    "name": "Vegetable Curry",
+    "category": "Curry",
+    "description": "Mild coconut-based vegetable curry with potatoes, carrots, and beans.",
+    "serving_size": 4,
+    "image": "https://example.com/images/vegetable-curry.jpg",
+    "ingredients": [
+      {"name": "Potato", "quantity": 300, "unit": "g"},
+      {"name": "Carrot", "quantity": 150, "unit": "g"},
+      {"name": "Beans", "quantity": 150, "unit": "g"},
+      {"name": "Onion", "quantity": 150, "unit": "g"},
+      {"name": "Coconut Milk", "quantity": 400, "unit": "ml"},
+      {"name": "Oil", "quantity": 40, "unit": "ml"},
+      {"name": "Curry Powder", "quantity": 20, "unit": "g"},
+      {"name": "Salt", "quantity": 10, "unit": "g"}
+    ],
+    "steps": [
+      "Heat oil and sauté sliced onions until golden.",
+      "Add curry powder and stir for 30 seconds.",
+      "Add chopped potato, carrot, and beans.",
+      "Pour in coconut milk and season with salt.",
+      "Simmer covered for 20 minutes until vegetables are tender.",
+      "Serve with rice or roti."
+    ]
+  },
+  {
+    "name": "Chicken Curry",
+    "category": "Curry",
+    "description": "Traditional Sri Lankan chicken curry with aromatic spices and coconut milk.",
+    "serving_size": 4,
+    "image": "https://example.com/images/chicken-curry.jpg",
+    "ingredients": [
+      {"name": "Chicken", "quantity": 800, "unit": "g"},
+      {"name": "Onion", "quantity": 200, "unit": "g"},
+      {"name": "Tomato", "quantity": 150, "unit": "g"},
+      {"name": "Coconut Milk", "quantity": 400, "unit": "ml"},
+      {"name": "Oil", "quantity": 50, "unit": "ml"},
+      {"name": "Curry Powder", "quantity": 25, "unit": "g"},
+      {"name": "Ginger Garlic Paste", "quantity": 30, "unit": "g"},
+      {"name": "Salt", "quantity": 12, "unit": "g"}
+    ],
+    "steps": [
+      "Heat oil and sauté onions until soft.",
+      "Add ginger garlic paste and curry powder; cook for 1 minute.",
+      "Add chicken pieces and brown lightly.",
+      "Stir in chopped tomatoes and salt.",
+      "Pour coconut milk and simmer for 30 minutes until chicken is tender.",
+      "Adjust seasoning and serve with rice."
+    ]
+  },
+  {
+    "name": "Dhal Curry",
+    "category": "Curry",
+    "description": "Creamy red lentil curry tempered with mustard seeds, curry leaves, and coconut milk.",
+    "serving_size": 4,
+    "image": "https://example.com/images/dhal-curry.jpg",
+    "ingredients": [
+      {"name": "Red Lentils", "quantity": 300, "unit": "g"},
+      {"name": "Onion", "quantity": 100, "unit": "g"},
+      {"name": "Coconut Milk", "quantity": 300, "unit": "ml"},
+      {"name": "Oil", "quantity": 30, "unit": "ml"},
+      {"name": "Curry Leaves", "quantity": 10, "unit": "g"},
+      {"name": "Mustard Seeds", "quantity": 5, "unit": "g"},
+      {"name": "Turmeric", "quantity": 5, "unit": "g"},
+      {"name": "Salt", "quantity": 10, "unit": "g"}
+    ],
+    "steps": [
+      "Wash red lentils and boil with turmeric until soft.",
+      "Mash lightly and add coconut milk and salt.",
+      "Simmer for 10 minutes to reach a creamy consistency.",
+      "Heat oil and temper mustard seeds and curry leaves with onions.",
+      "Pour tempered mixture over dhal and stir well.",
+      "Serve with rice, roti, or hoppers."
+    ]
+  },
+  {
+    "name": "Fish Curry",
+    "category": "Curry",
+    "description": "Tangy and spicy fish curry cooked in coconut milk with goraka or tamarind.",
+    "serving_size": 4,
+    "image": "https://example.com/images/fish-curry.jpg",
+    "ingredients": [
+      {"name": "Fish", "quantity": 800, "unit": "g"},
+      {"name": "Onion", "quantity": 200, "unit": "g"},
+      {"name": "Tomato", "quantity": 150, "unit": "g"},
+      {"name": "Coconut Milk", "quantity": 400, "unit": "ml"},
+      {"name": "Oil", "quantity": 40, "unit": "ml"},
+      {"name": "Curry Powder", "quantity": 20, "unit": "g"},
+      {"name": "Chili Powder", "quantity": 10, "unit": "g"},
+      {"name": "Salt", "quantity": 12, "unit": "g"}
+    ],
+    "steps": [
+      "Clean and cut fish into portions.",
+      "Sauté onions in oil until golden, then add curry and chili powder.",
+      "Add tomatoes and cook until softened.",
+      "Pour in coconut milk and bring to a gentle simmer.",
+      "Add fish pieces carefully and cook for 12-15 minutes.",
+      "Do not stir vigorously; shake the pan gently. Serve with rice."
+    ]
+  }
+]
