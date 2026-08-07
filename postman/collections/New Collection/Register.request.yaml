@@ -1,0 +1,19 @@
+$kind: http-request
+name: Register
+description: ""
+url: http://192.168.1.120:5000/register
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \        \"username\": \"Sopna\",\r
+
+    \        \"email\": \"sopna2@gmail.com\",\r
+
+    \        \"password\": \"sopna123!\",\r
+
+    \        \"full_name\": \"Sopna Parameswaran\"\r
+
+    }"
+order: 1784092040939
