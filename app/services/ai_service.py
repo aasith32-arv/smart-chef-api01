@@ -125,3 +125,130 @@ class AIService:
             "steps": recipe.steps or [],
             "tips": [
                 f"Base recipe serves {recipe.serving_size}; quantities scaled to {people} people."
+            ],
+            "source": "local",
+            "language": language or "en",
+        }
+
+    @classmethod
+    def generate_meal_plan(cls, dish, people, language="en"):
+        system = (
+            "You are AI Chef, a professional kitchen planner. "
+            "Return ONLY valid JSON with keys: dish, category, description, people, "
+            "ingredients (array of {name, quantity, unit, display}), steps (string array), "
+            "tips (string array), source, language. "
+            "Quantities must be realistic for the given guest count. "
+            "Write all text fields in the requested language code."
+        )
+        user = json.dumps(
+            {
+                "dish": dish,
+                "people": people,
+                "language": language,
+                "source": "openai",
+            }
+        )
+        data = cls._chat(system, user)
+        data["people"] = people
+        data["source"] = data.get("source") or "openai"
+        data["language"] = language
+        data.setdefault("dish", dish)
+        data.setdefault("category", "General")
+        data.setdefault("description", "")
+        data.setdefault("ingredients", [])
+        data.setdefault("steps", [])
+        data.setdefault("tips", [])
+
+        for item in data["ingredients"]:
+            if not item.get("display"):
+                qty = item.get("quantity", 0)
+                unit = item.get("unit", "")
+                item["display"] = f"{qty} {unit}".strip()
+            if "quantity" not in item:
+                qty, unit = cls._parse_display(item.get("display", ""))
+                item["quantity"] = qty
+                item.setdefault("unit", unit)
+        return data
+
+    @classmethod
+    def suggest_from_local(cls, recommendations, available_ingredients):
+        suggestions = []
+        for item in recommendations:
+            recipe = item["recipe"]
+            suggestions.append(
+                {
+                    "name": recipe["name"],
+                    "category": recipe.get("category") or "General",
+                    "match_percentage": item.get("match_percentage", 0),
+                    "description": recipe.get("description") or "",
+                    "missing_ingredients": item.get("missing_ingredients") or [],
+                    "why": (
+                        f"{item.get('match_percentage', 0)}% ingredient match "
+                        "from your pantry."
+                    ),
+                }
+            )
+        return {
+            "available_ingredients": available_ingredients,
+            "count": len(suggestions),
+            "suggestions": suggestions,
+            "source": "local",
+        }
+
+    @classmethod
+    def generate_suggestions(cls, ingredients, language="en"):
+        system = (
+            "You are AI Chef. Suggest dishes that can be made from the pantry list. "
+            "Return ONLY valid JSON with keys: available_ingredients, count, suggestions "
+            "(array of {name, category, match_percentage, description, missing_ingredients, why}), "
+            "source. Write text in the requested language. Prefer realistic home cooking."
+        )
+        user = json.dumps({"ingredients": ingredients, "language": language, "source": "openai"})
+        data = cls._chat(system, user, temperature=0.5)
+        data["available_ingredients"] = ingredients
+        data["source"] = data.get("source") or "openai"
+        suggestions = data.get("suggestions") or []
+        data["suggestions"] = suggestions
+        data["count"] = len(suggestions)
+        return data
+
+    @classmethod
+    def translate_content(cls, content, language):
+        if language in (None, "", "en"):
+            return {
+                "dish": content.get("dish") or content.get("name") or "",
+                "description": content.get("description") or "",
+                "ingredients": content.get("ingredients") or [],
+                "steps": content.get("steps") or [],
+                "tips": content.get("tips") or [],
+                "language": "en",
+                "source": "passthrough",
+            }
+
+        if not cls.is_configured():
+            return {
+                "dish": content.get("dish") or content.get("name") or "",
+                "description": content.get("description") or "",
+                "ingredients": content.get("ingredients") or [],
+                "steps": content.get("steps") or [],
+                "tips": content.get("tips") or [],
+                "language": language,
+                "source": "local-passthrough",
+            }
+
+        system = (
+            "Translate the recipe content into the target language. "
+            "Keep ingredient quantities and units unchanged in display strings unless "
+            "the unit name must be localized. Return ONLY JSON with keys: dish, description, "
+            "ingredients (same shape as input), steps, tips, language, source."
+        )
+        user = json.dumps({"content": content, "language": language, "source": "openai"})
+        data = cls._chat(system, user, temperature=0.2)
+        data["language"] = language
+        data["source"] = data.get("source") or "openai"
+        data.setdefault("dish", content.get("dish") or "")
+        data.setdefault("description", content.get("description") or "")
+        data.setdefault("ingredients", content.get("ingredients") or [])
+        data.setdefault("steps", content.get("steps") or [])
+        data.setdefault("tips", content.get("tips") or [])
+        return data
