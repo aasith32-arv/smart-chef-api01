@@ -57,3 +57,62 @@ class RecipeService:
 
     @staticmethod
     def create(data):
+        if Recipe.query.filter(Recipe.name.ilike(data["name"])).first():
+            return None, "A recipe with this name already exists.", 409
+
+        recipe = Recipe(
+            name=data["name"],
+            category=data["category"],
+            description=data.get("description", ""),
+            serving_size=data["serving_size"],
+            steps=data["steps"],
+            image=data.get("image", ""),
+        )
+
+        for ing_data in data["ingredients"]:
+            recipe.ingredients.append(
+                Ingredient(
+                    name=ing_data["name"],
+                    quantity=ing_data["quantity"],
+                    unit=ing_data["unit"],
+                )
+            )
+
+        db.session.add(recipe)
+        db.session.commit()
+        return recipe, None, 201
+
+    @staticmethod
+    def update(recipe, data):
+        if "name" in data and data["name"].lower() != recipe.name.lower():
+            existing = Recipe.query.filter(Recipe.name.ilike(data["name"])).first()
+            if existing and existing.id != recipe.id:
+                return None, "A recipe with this name already exists.", 409
+
+        for field in ("name", "category", "description", "serving_size", "steps", "image"):
+            if field in data:
+                setattr(recipe, field, data[field])
+
+        if "ingredients" in data:
+            Ingredient.query.filter_by(recipe_id=recipe.id).delete()
+            for ing_data in data["ingredients"]:
+                recipe.ingredients.append(
+                    Ingredient(
+                        name=ing_data["name"],
+                        quantity=ing_data["quantity"],
+                        unit=ing_data["unit"],
+                    )
+                )
+
+        db.session.commit()
+        return recipe, None, 200
+
+    @staticmethod
+    def delete(recipe):
+        db.session.delete(recipe)
+        db.session.commit()
+        return True, None, 200
+
+    @staticmethod
+    def get_all_recipes():
+        return Recipe.query.order_by(Recipe.name.asc()).all()
