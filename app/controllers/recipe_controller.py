@@ -30,3 +30,36 @@ class RecipeController:
     @staticmethod
     def create():
         cleaned, errors = validate_recipe_create(request.get_json(silent=True))
+        if errors:
+            return error_response("Validation failed.", 400, errors)
+        recipe, message, status = RecipeService.create(cleaned)
+        if not recipe:
+            return error_response(message, status)
+        return success_response({"recipe": recipe.to_dict()}, "Recipe created successfully.", status)
+
+    @staticmethod
+    def update(recipe_id):
+        recipe = RecipeService.get_by_id(recipe_id)
+        if not recipe:
+            return error_response("Recipe not found.", 404)
+        cleaned, errors = validate_recipe_update(request.get_json(silent=True))
+        if errors:
+            return error_response("Validation failed.", 400, errors)
+        recipe, message, status = RecipeService.update(recipe, cleaned)
+        if not recipe:
+            return error_response(message, status)
+        return success_response({"recipe": recipe.to_dict()}, "Recipe updated successfully.", status)
+
+    @staticmethod
+    def delete(recipe_id):
+        recipe = RecipeService.get_by_id(recipe_id)
+        if not recipe:
+            return error_response("Recipe not found.", 404)
+        RecipeService.delete(recipe)
+        return success_response(message="Recipe deleted successfully.")
+
+    @classmethod
+    def by_category(cls, category):
+        page, per_page = cls._pagination_params()
+        result = RecipeService.get_by_category(category, page, per_page)
+        return success_response(result, f"Recipes in category '{category}' retrieved successfully.")
