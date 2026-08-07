@@ -123,3 +123,128 @@ def create_app(config_overrides=None):
                 },
                 "CookieAuth": {
                     "type": "apiKey",
+                    "name": "Cookie",
+                    "in": "header",
+                    "description": "access_token_cookie + X-CSRF-TOKEN for mutations",
+                },
+            },
+        },
+    )
+
+    @app.before_request
+    def _start_timer():
+        g._request_start = time.perf_counter()
+
+    @app.after_request
+    def _log_request(response):
+        started = getattr(g, "_request_start", None)
+        latency_ms = None
+        if started is not None:
+            latency_ms = round((time.perf_counter() - started) * 1000, 2)
+        app.logger.info(
+            '{"method":"%s","path":"%s","status":%s,"latency_ms":%s}'
+            % (request.method, request.path, response.status_code, latency_ms)
+        )
+        return response
+
+    @app.route("/", methods=["GET"])
+    def api_home():
+        return jsonify(
+            {
+                "message": "AI Chef – Smart Food Quantity Calculator API",
+                "version": "1.2.0",
+                "documentation": "/apidocs",
+                "health": "/health",
+                "api_base": API_V1_PREFIX,
+                "auth": {
+                    "mode": "httpOnly cookies (access + refresh) with CSRF; Bearer header still accepted",
+                    "access_ttl_minutes": int(
+                        app.config["JWT_ACCESS_TOKEN_EXPIRES"].total_seconds() // 60
+                    ),
+                    "refresh_ttl_days": int(
+                        app.config["JWT_REFRESH_TOKEN_EXPIRES"].total_seconds() // 86400
+                    ),
+                },
+                "endpoints": {
+                    "auth": {
+                        "register": f"POST {API_V1_PREFIX}/register",
+                        "login": f"POST {API_V1_PREFIX}/login",
+                        "refresh": f"POST {API_V1_PREFIX}/refresh",
+                        "logout": f"POST {API_V1_PREFIX}/logout",
+                        "profile": f"GET {API_V1_PREFIX}/profile",
+                    },
+                    "recipes": f"GET {API_V1_PREFIX}/recipes",
+                    "calculator": f"POST {API_V1_PREFIX}/calculate",
+                    "recommendation": f"POST {API_V1_PREFIX}/recommend",
+                    "ai": f"{API_V1_PREFIX}/ai/*",
+                    "favorites": f"{API_V1_PREFIX}/favorites",
+                },
+            }
+        )
+
+    @app.route("/health", methods=["GET"])
+    def health():
+        """Liveness/readiness: verifies DB connectivity with SELECT 1."""
+        try:
+            db.session.execute(text("SELECT 1"))
+            return jsonify({"status": "ok", "database": "up"}), 200
+        except Exception as exc:
+            app.logger.exception('"health check failed"')
+            return (
+                jsonify(
+                    {
+                        "status": "degraded",
+                        "database": "down",
+                        "detail": str(exc.__class__.__name__),
+                    }
+                ),
+                503,
+            )
+
+    @app.cli.command("seed")
+    def seed_command():
+        """Seed sample recipes (flask seed)."""
+        from app.seeders import seed_recipes
+
+        seed_recipes()
+        print("Database seeded successfully.")
+
+    @app.errorhandler(HTTPException)
+    def handle_http_exception(err):
+        return jsonify({"success": False, "message": err.description}), err.code
+
+    @app.errorhandler(404)
+    def handle_not_found(err):
+        return jsonify({"success": False, "message": "Resource not found."}), 404
+
+    @app.errorhandler(405)
+    def handle_method_not_allowed(err):
+        return jsonify({"success": False, "message": "Method not allowed."}), 405
+
+    @app.errorhandler(429)
+    def handle_rate_limit(err):
+        return jsonify({"success": False, "message": "Too many requests. Please try again later."}), 429
+
+    @app.errorhandler(500)
+    def handle_internal_error(err):
+        db.session.rollback()
+        app.logger.exception('"unhandled server error"')
+        return jsonify({"success": False, "message": "An internal server error occurred."}), 500
+
+    @jwt.expired_token_loader
+    def expired_token_callback(jwt_header, jwt_payload):
+        return jsonify({"success": False, "message": "Token has expired."}), 401
+
+    @jwt.invalid_token_loader
+    def invalid_token_callback(error):
+        return jsonify({"success": False, "message": "Invalid token."}), 401
+
+    @jwt.unauthorized_loader
+    def missing_token_callback(error):
+        return jsonify({"success": False, "message": "Authorization token is required."}), 401
+
+    @jwt.revoked_token_loader
+    def revoked_token_callback(jwt_header, jwt_payload):
+        return jsonify({"success": False, "message": "Token has been revoked."}), 401
+
+    return app
