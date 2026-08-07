@@ -28,3 +28,34 @@ def app():
 def client(app):
     return app.test_client()
 
+
+@pytest.fixture()
+def sample_recipe(app):
+    recipe = Recipe(
+        name="Test Curry",
+        category="Curry",
+        description="A test curry",
+        serving_size=4,
+        steps=["Step 1", "Step 2"],
+        image=None,
+    )
+    db.session.add(recipe)
+    db.session.flush()
+    db.session.add_all(
+        [
+            Ingredient(recipe_id=recipe.id, name="Chicken", quantity=500, unit="g"),
+            Ingredient(recipe_id=recipe.id, name="Onion", quantity=2, unit="piece"),
+            Ingredient(recipe_id=recipe.id, name="Oil", quantity=30, unit="ml"),
+        ]
+    )
+    db.session.commit()
+    return recipe
+
+
+@pytest.fixture()
+def sample_user(app):
+    user = User(username="tester", email="tester@example.com", full_name="Test User")
+    user.set_password("secret12")
+    db.session.add(user)
+    db.session.commit()
+    return user
