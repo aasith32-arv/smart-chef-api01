@@ -33,3 +33,38 @@ class TokenBlocklistService:
 
         identity = decoded.get("sub")
         resolved_user = user_id
+        if resolved_user is None and identity is not None:
+            try:
+                resolved_user = int(identity)
+            except (TypeError, ValueError):
+                resolved_user = None
+
+        entry = TokenBlocklist(
+            jti=jti,
+            token_type=decoded.get("type") or "access",
+            user_id=resolved_user,
+            expires_at=expires_at,
+        )
+        db.session.add(entry)
+        db.session.commit()
+
+    @staticmethod
+    def revoke_raw_token(raw_token: str | None) -> None:
+        if not raw_token:
+            return
+        try:
+            decoded = decode_token(raw_token)
+        except Exception:
+            return
+        TokenBlocklistService.revoke_decoded(decoded)
+
+    @staticmethod
+    def purge_expired() -> int:
+        now = utc_now()
+        deleted = (
+            db.session.query(TokenBlocklist)
+            .filter(TokenBlocklist.expires_at < now)
+            .delete(synchronize_session=False)
+        )
+        db.session.commit()
+        return deleted
