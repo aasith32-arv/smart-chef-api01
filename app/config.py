@@ -35,3 +35,40 @@ class Config:
     JWT_REFRESH_COOKIE_PATH = "/"
     JWT_COOKIE_DOMAIN = os.getenv("JWT_COOKIE_DOMAIN") or None
 
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(
+        minutes=int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES_MINUTES", "15"))
+    )
+    JWT_REFRESH_TOKEN_EXPIRES = timedelta(
+        days=int(os.getenv("JWT_REFRESH_TOKEN_EXPIRES_DAYS", "30"))
+    )
+
+    # SQLite by default; switch to MySQL by setting DATABASE_URL or DB_* vars
+    DATABASE_URL = os.getenv("DATABASE_URL")
+    if DATABASE_URL:
+        SQLALCHEMY_DATABASE_URI = DATABASE_URL
+    else:
+        DB_USER = os.getenv("DB_USER", "root")
+        DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+        DB_HOST = os.getenv("DB_HOST", "localhost")
+        DB_NAME = os.getenv("DB_NAME", "aichef_db1")
+        DB_PORT = os.getenv("DB_PORT", "3306")
+
+        if os.getenv("USE_MYSQL", "false").lower() == "true":
+            SQLALCHEMY_DATABASE_URI = (
+                f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+            )
+        else:
+            basedir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+            db_path = os.path.join(basedir, "instance", "aichef.db")
+            os.makedirs(os.path.dirname(db_path), exist_ok=True)
+            SQLALCHEMY_DATABASE_URI = f"sqlite:///{db_path}"
+
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    DEFAULT_PAGE_SIZE = int(os.getenv("DEFAULT_PAGE_SIZE", "10"))
+    MAX_PAGE_SIZE = int(os.getenv("MAX_PAGE_SIZE", "50"))
+
+    # In-memory rate-limit storage is fine for single-process local/dev.
+    # Use Redis (e.g. redis://localhost:6379) for multi-worker production.
+    RATELIMIT_STORAGE_URI = os.getenv("RATELIMIT_STORAGE_URI", "memory://")
+    RATELIMIT_HEADERS_ENABLED = True
