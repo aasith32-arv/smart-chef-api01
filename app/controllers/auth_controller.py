@@ -59,3 +59,64 @@ class AuthController:
             "Login successful.",
         )
         AuthController._issue_auth_cookies(response, user.id)
+        return response, code
+
+    @staticmethod
+    def refresh():
+        identity = get_jwt_identity()
+        access_token = create_access_token(identity=identity)
+        response, code = success_response(message="Access token refreshed.")
+        set_access_cookies(response, access_token)
+        return response, code
+
+    @staticmethod
+    def logout():
+        TokenBlocklistService.revoke_decoded(get_jwt())
+
+        refresh_name = current_app.config.get(
+            "JWT_REFRESH_COOKIE_NAME", "refresh_token_cookie"
+        )
+        TokenBlocklistService.revoke_raw_token(request.cookies.get(refresh_name))
+
+        response, code = success_response(message="Logged out successfully.")
+        unset_jwt_cookies(response)
+        return response, code
+
+    @staticmethod
+    def get_profile():
+        user = db.session.get(User, int(get_jwt_identity()))
+        if not user:
+            return error_response("User not found.", 404)
+        return success_response({"user": user.to_dict()}, "Profile retrieved successfully.")
+
+    @staticmethod
+    def update_profile():
+        cleaned, errors = validate_profile_update(request.get_json(silent=True))
+        if errors:
+            return error_response("Validation failed.", 400, errors)
+
+        user = db.session.get(User, int(get_jwt_identity()))
+        if not user:
+            return error_response("User not found.", 404)
+
+        user, message, status = AuthService.update_profile(user, cleaned)
+        if not user:
+            return error_response(message, status)
+        return success_response({"user": user.to_dict()}, "Profile updated successfully.", status)
+
+    @staticmethod
+    def delete_profile():
+        user = db.session.get(User, int(get_jwt_identity()))
+        if not user:
+            return error_response("User not found.", 404)
+
+        TokenBlocklistService.revoke_decoded(get_jwt())
+        refresh_name = current_app.config.get(
+            "JWT_REFRESH_COOKIE_NAME", "refresh_token_cookie"
+        )
+        TokenBlocklistService.revoke_raw_token(request.cookies.get(refresh_name))
+
+        AuthService.delete_profile(user)
+        response, code = success_response(message="Profile deleted successfully.")
+        unset_jwt_cookies(response)
+        return response, code
