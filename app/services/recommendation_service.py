@@ -31,3 +31,36 @@ class RecommendationService:
     @classmethod
     def recommend(cls, recipes, available_ingredients, include_partial=False):
         """
+        Return recipes that can be prepared with available ingredients.
+        By default returns only fully matchable recipes.
+        """
+        results = []
+
+        for recipe in recipes:
+            if cls.can_prepare_recipe(recipe, available_ingredients):
+                results.append(
+                    {
+                        "recipe": recipe.to_dict(),
+                        "match_percentage": 100.0,
+                        "missing_ingredients": [],
+                    }
+                )
+            elif include_partial:
+                score = cls.match_score(recipe, available_ingredients)
+                if score > 0:
+                    available = {cls._normalize_name(i) for i in available_ingredients}
+                    missing = [
+                        ing.name
+                        for ing in recipe.ingredients
+                        if cls._normalize_name(ing.name) not in available
+                    ]
+                    results.append(
+                        {
+                            "recipe": recipe.to_dict(),
+                            "match_percentage": round(score * 100, 1),
+                            "missing_ingredients": missing,
+                        }
+                    )
+
+        results.sort(key=lambda x: (-x["match_percentage"], x["recipe"]["name"]))
+        return results
