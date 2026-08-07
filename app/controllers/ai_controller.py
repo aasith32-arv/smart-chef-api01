@@ -54,3 +54,60 @@ class AIController:
             plan = AIService.meal_plan_from_recipe(recipe, people, language)
         except ValueError as exc:
             return error_response(str(exc), 400)
+
+        return success_response(plan, "Meal plan generated from local recipes.")
+
+    @staticmethod
+    def suggest():
+        data = request.get_json(silent=True) or {}
+        ingredients = data.get("ingredients")
+        language = (data.get("language") or "en").strip() or "en"
+
+        if not isinstance(ingredients, list) or not ingredients:
+            return error_response(
+                "Validation failed.",
+                400,
+                {"ingredients": "ingredients is required and must be a non-empty list."},
+            )
+        cleaned = [str(item).strip() for item in ingredients if str(item).strip()]
+        if not cleaned:
+            return error_response(
+                "Validation failed.",
+                400,
+                {"ingredients": "each ingredient must be a non-empty string."},
+            )
+
+        if AIService.is_configured():
+            try:
+                result = AIService.generate_suggestions(cleaned, language)
+                return success_response(result, "Suggestions generated with OpenAI.")
+            except Exception:
+                # Prefer local matching when OpenAI is unavailable.
+                pass
+
+        recommendations = RecommendationService.recommend(
+            RecipeService.get_all_recipes(), cleaned, include_partial=True
+        )
+        recommendations = [item for item in recommendations if item["match_percentage"] > 0]
+        result = AIService.suggest_from_local(recommendations, cleaned)
+        return success_response(result, "Suggestions generated from local recipes.")
+
+    @staticmethod
+    def translate():
+        data = request.get_json(silent=True) or {}
+        content = data.get("content")
+        language = (data.get("language") or "en").strip() or "en"
+
+        if not isinstance(content, dict):
+            return error_response(
+                "Validation failed.",
+                400,
+                {"content": "content is required and must be an object."},
+            )
+
+        try:
+            translated = AIService.translate_content(content, language)
+        except Exception as exc:
+            return error_response(str(exc), 502)
+
+        return success_response(translated, "Content translated.")
