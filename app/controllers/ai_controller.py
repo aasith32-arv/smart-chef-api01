@@ -1,0 +1,56 @@
+from flask import request
+
+from app.services import AIService, RecipeService, RecommendationService
+from app.utils.responses import error_response, success_response
+
+
+class AIController:
+    @staticmethod
+    def status():
+        return success_response(AIService.status(), "AI status retrieved.")
+
+    @staticmethod
+    def plan():
+        data = request.get_json(silent=True) or {}
+        dish = (data.get("dish") or data.get("recipe") or "").strip()
+        language = (data.get("language") or "en").strip() or "en"
+        people = data.get("people")
+
+        errors = {}
+        if not dish:
+            errors["dish"] = "dish is required and must be a non-empty string."
+        try:
+            people = int(people)
+            if people < 1:
+                errors["people"] = "people must be at least 1."
+        except (TypeError, ValueError):
+            errors["people"] = "people must be a positive integer."
+
+        if errors:
+            return error_response("Validation failed.", 400, errors)
+
+        if AIService.is_configured():
+            try:
+                plan = AIService.generate_meal_plan(dish, people, language)
+                return success_response(plan, "Meal plan generated with OpenAI.")
+            except Exception as exc:
+                # Fall through to local recipe library
+                local_error = str(exc)
+        else:
+            local_error = None
+
+        recipe = RecipeService.get_by_name(dish)
+        if not recipe:
+            message = f"Recipe '{dish}' not found."
+            if local_error:
+                message = f"{message} OpenAI also failed: {local_error}"
+            elif not AIService.is_configured():
+                message = (
+                    f"{message} Add OPENAI_API_KEY for AI plans on unknown dishes."
+                )
+            return error_response(message, 404)
+
+        try:
+            plan = AIService.meal_plan_from_recipe(recipe, people, language)
+        except ValueError as exc:
+            return error_response(str(exc), 400)
