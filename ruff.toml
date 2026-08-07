@@ -1,0 +1,11 @@
+# Ruff linter config for smart-chef-api
+line-length = 100
+target-version = "py312"
+
+[lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]
+
+[lint.per-file-ignores]
+"tests/**" = ["F401"]
+"migrations/**" = ["E", "F", "W", "I"]
