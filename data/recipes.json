@@ -1,0 +1,127 @@
+[
+  {
+    "name": "Chicken Biryani",
+    "category": "Rice",
+    "description": "Aromatic spiced rice dish with tender chicken, layered with fried onions and herbs.",
+    "serving_size": 4,
+    "image": "https://example.com/images/chicken-biryani.jpg",
+    "ingredients": [
+      {"name": "Rice", "quantity": 600, "unit": "g"},
+      {"name": "Chicken", "quantity": 800, "unit": "g"},
+      {"name": "Onion", "quantity": 400, "unit": "g"},
+      {"name": "Tomato", "quantity": 240, "unit": "g"},
+      {"name": "Oil", "quantity": 160, "unit": "ml"},
+      {"name": "Salt", "quantity": 20, "unit": "g"},
+      {"name": "Yogurt", "quantity": 200, "unit": "g"},
+      {"name": "Ginger Garlic Paste", "quantity": 40, "unit": "g"},
+      {"name": "Biryani Masala", "quantity": 30, "unit": "g"}
+    ],
+    "steps": [
+      "Marinate chicken with yogurt, ginger garlic paste, biryani masala, and salt for 30 minutes.",
+      "Soak basmati rice for 20 minutes and parboil until 70% cooked.",
+      "Fry sliced onions until golden brown and set aside.",
+      "Cook marinated chicken with tomatoes until tender and gravy thickens.",
+      "Layer parboiled rice over chicken, top with fried onions and mint leaves.",
+      "Cover tightly and cook on low heat (dum) for 20 minutes.",
+      "Gently mix and serve hot with raita."
+    ]
+  },
+  {
+    "name": "Vegetable Fried Rice",
+    "category": "Rice",
+    "description": "Colorful stir-fried rice with mixed vegetables and mild seasoning.",
+    "serving_size": 4,
+    "image": "https://example.com/images/vegetable-fried-rice.jpg",
+    "ingredients": [
+      {"name": "Rice", "quantity": 500, "unit": "g"},
+      {"name": "Carrot", "quantity": 100, "unit": "g"},
+      {"name": "Beans", "quantity": 100, "unit": "g"},
+      {"name": "Capsicum", "quantity": 100, "unit": "g"},
+      {"name": "Onion", "quantity": 150, "unit": "g"},
+      {"name": "Oil", "quantity": 60, "unit": "ml"},
+      {"name": "Soy Sauce", "quantity": 30, "unit": "ml"},
+      {"name": "Salt", "quantity": 10, "unit": "g"}
+    ],
+    "steps": [
+      "Cook rice and spread on a tray to cool completely.",
+      "Heat oil in a wok and sauté chopped onions until translucent.",
+      "Add diced carrot, beans, and capsicum; stir-fry for 3 minutes.",
+      "Add cooled rice, soy sauce, and salt.",
+      "Toss on high heat for 4-5 minutes until evenly mixed.",
+      "Serve hot as a main dish or side."
+    ]
+  },
+  {
+    "name": "Chicken Fried Rice",
+    "category": "Rice",
+    "description": "Classic fried rice with diced chicken, vegetables, and soy sauce.",
+    "serving_size": 4,
+    "image": "https://example.com/images/chicken-fried-rice.jpg",
+    "ingredients": [
+      {"name": "Rice", "quantity": 500, "unit": "g"},
+      {"name": "Chicken", "quantity": 400, "unit": "g"},
+      {"name": "Egg", "quantity": 3, "unit": "piece"},
+      {"name": "Onion", "quantity": 150, "unit": "g"},
+      {"name": "Carrot", "quantity": 80, "unit": "g"},
+      {"name": "Oil", "quantity": 60, "unit": "ml"},
+      {"name": "Soy Sauce", "quantity": 30, "unit": "ml"},
+      {"name": "Salt", "quantity": 10, "unit": "g"}
+    ],
+    "steps": [
+      "Cook rice and let it cool to room temperature.",
+      "Dice chicken and cook in oil until golden and cooked through.",
+      "Scramble eggs in the same pan and set aside.",
+      "Sauté onions and carrots until slightly soft.",
+      "Add rice, chicken, eggs, soy sauce, and salt.",
+      "Stir-fry on high heat for 5 minutes and serve."
+    ]
+  },
+  {
+    "name": "Egg Fried Rice",
+    "category": "Rice",
+    "description": "Quick and easy fried rice with scrambled eggs and spring onions.",
+    "serving_size": 4,
+    "image": "https://example.com/images/egg-fried-rice.jpg",
+    "ingredients": [
+      {"name": "Rice", "quantity": 500, "unit": "g"},
+      {"name": "Egg", "quantity": 4, "unit": "piece"},
+      {"name": "Onion", "quantity": 120, "unit": "g"},
+      {"name": "Oil", "quantity": 50, "unit": "ml"},
+      {"name": "Soy Sauce", "quantity": 25, "unit": "ml"},
+      {"name": "Salt", "quantity": 8, "unit": "g"},
+      {"name": "Pepper", "quantity": 5, "unit": "g"}
+    ],
+    "steps": [
+      "Cook rice and cool completely.",
+      "Beat eggs with a pinch of salt and scramble in hot oil.",
+      "Sauté chopped onions until soft.",
+      "Add rice, scrambled eggs, soy sauce, salt, and pepper.",
+      "Toss well on high heat for 4 minutes.",
+      "Garnish with spring onions and serve."
+    ]
+  },
+  {
+    "name": "Kottu",
+    "category": "Street Food",
+    "description": "Popular Sri Lankan chopped flatbread stir-fry with vegetables and spices.",
+    "serving_size": 4,
+    "image": "https://example.com/images/kottu.jpg",
+    "ingredients": [
+      {"name": "Roti", "quantity": 8, "unit": "piece"},
+      {"name": "Chicken", "quantity": 400, "unit": "g"},
+      {"name": "Carrot", "quantity": 100, "unit": "g"},
+      {"name": "Leeks", "quantity": 100, "unit": "g"},
+      {"name": "Egg", "quantity": 2, "unit": "piece"},
+      {"name": "Onion", "quantity": 150, "unit": "g"},
+      {"name": "Oil", "quantity": 60, "unit": "ml"},
+      {"name": "Curry Powder", "quantity": 15, "unit": "g"},
+      {"name": "Salt", "quantity": 10, "unit": "g"}
+    ],
+    "steps": [
+      "Cook chicken with curry powder and salt; shred into small pieces.",
+      "Chop roti into thin strips.",
+      "Heat oil on a flat griddle and sauté onions, carrots, and leeks.",
+      "Add shredded chicken and chopped roti.",
+      "Crack eggs into the mixture and chop everything together using metal blades.",
+      "Season with curry powder and salt, toss for 5 minutes, and serve hot."
+    ]
