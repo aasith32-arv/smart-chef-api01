@@ -28,6 +28,8 @@ class Config:
     # Dual location: cookies for the web app; Bearer headers still work for Swagger /
     # API clients that cannot store cookies.
     JWT_TOKEN_LOCATION = ["headers", "cookies"]
+    JWT_HEADER_NAME = os.getenv("JWT_HEADER_NAME", "Authorization")
+    JWT_HEADER_TYPE = os.getenv("JWT_HEADER_TYPE", "Bearer")
     JWT_COOKIE_SECURE = _env_bool("JWT_COOKIE_SECURE", default=False)
     JWT_COOKIE_SAMESITE = os.getenv("JWT_COOKIE_SAMESITE", "Lax")
     JWT_COOKIE_CSRF_PROTECT = _env_bool("JWT_COOKIE_CSRF_PROTECT", default=True)
