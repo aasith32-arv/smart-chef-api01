@@ -1,4 +1,4 @@
-"""OpenAI-backed meal planning with local recipe fallbacks."""
+"""Provider-backed meal planning with local recipe fallbacks."""
 
 from __future__ import annotations
 
@@ -10,37 +10,67 @@ import urllib.request
 
 
 class AIService:
-    """Generate meal plans, suggestions, and translations via OpenAI when configured."""
+    """Generate meal plans, suggestions, and translations via the selected AI provider."""
 
-    DEFAULT_MODEL = "gpt-4o-mini"
+    DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
+    DEFAULT_GEMINI_MODEL = "gemini-flash-latest"
     OPENAI_URL = "https://api.openai.com/v1/chat/completions"
+    GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
     @classmethod
-    def api_key(cls):
+    def openai_api_key(cls):
         return (os.getenv("OPENAI_API_KEY") or "").strip()
 
     @classmethod
+    def gemini_api_key(cls):
+        return (os.getenv("GEMINI_API_KEY") or "").strip()
+
+    @classmethod
+    def provider(cls):
+        requested = (os.getenv("AI_PROVIDER") or "auto").strip().lower()
+        if requested not in {"auto", "openai", "gemini"}:
+            return "none"
+        if requested != "auto":
+            return requested
+        if cls.openai_api_key():
+            return "openai"
+        if cls.gemini_api_key():
+            return "gemini"
+        return "none"
+
+    @classmethod
     def model(cls):
-        return (os.getenv("OPENAI_MODEL") or cls.DEFAULT_MODEL).strip()
+        if cls.provider() == "gemini":
+            return (os.getenv("GEMINI_MODEL") or cls.DEFAULT_GEMINI_MODEL).strip()
+        return (os.getenv("OPENAI_MODEL") or cls.DEFAULT_OPENAI_MODEL).strip()
 
     @classmethod
     def is_configured(cls):
-        key = cls.api_key()
-        return bool(key) and key.startswith("sk-") and "your-real-key" not in key
+        provider = cls.provider()
+        if provider == "gemini":
+            key = cls.gemini_api_key()
+            return bool(key) and "your-real-key" not in key
+        if provider == "openai":
+            key = cls.openai_api_key()
+            return bool(key) and key.startswith("sk-") and "your-real-key" not in key
+        return False
 
     @classmethod
     def status(cls):
         configured = cls.is_configured()
+        provider = cls.provider()
         model = cls.model()
         if configured:
-            message = f"OpenAI ready ({model}). AI plans and suggestions are available."
+            label = "Gemini" if provider == "gemini" else "OpenAI"
+            message = f"{label} ready ({model}). AI plans and suggestions are available."
         else:
             message = (
-                "OpenAI key missing. Local recipes still work. "
-                "Set OPENAI_API_KEY in smart-chef-api/.env for AI plans."
+                "AI provider key missing or provider invalid. Local recipes still work. "
+                "Set AI_PROVIDER and the matching API key in smart-chef-api/.env."
             )
         return {
             "configured": configured,
+            "provider": provider,
             "model": model,
             "message": message,
             "reachable": True,
@@ -49,8 +79,14 @@ class AIService:
     @classmethod
     def _chat(cls, system_prompt, user_prompt, temperature=0.4):
         if not cls.is_configured():
-            raise RuntimeError("OpenAI is not configured.")
+            raise RuntimeError("The selected AI provider is not configured.")
 
+        if cls.provider() == "gemini":
+            return cls._gemini_chat(system_prompt, user_prompt, temperature)
+        return cls._openai_chat(system_prompt, user_prompt, temperature)
+
+    @classmethod
+    def _openai_chat(cls, system_prompt, user_prompt, temperature):
         payload = {
             "model": cls.model(),
             "temperature": temperature,
@@ -65,7 +101,7 @@ class AIService:
             data=json.dumps(payload).encode("utf-8"),
             headers={
                 "Content-Type": "application/json",
-                "Authorization": f"Bearer {cls.api_key()}",
+                "Authorization": f"Bearer {cls.openai_api_key()}",
             },
             method="POST",
         )
@@ -81,6 +117,45 @@ class AIService:
         content = body["choices"][0]["message"]["content"]
         return json.loads(content)
 
+    @classmethod
+    def _gemini_chat(cls, system_prompt, user_prompt, temperature):
+        model = cls.model()
+        if not re.fullmatch(r"[A-Za-z0-9._-]+", model):
+            raise RuntimeError("Invalid Gemini model name.")
+
+        payload = {
+            "systemInstruction": {"parts": [{"text": system_prompt}]},
+            "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
+            "generationConfig": {
+                "temperature": temperature,
+                "responseMimeType": "application/json",
+            },
+        }
+        request = urllib.request.Request(
+            cls.GEMINI_URL.format(model=model),
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Content-Type": "application/json",
+                "X-goog-api-key": cls.gemini_api_key(),
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=60) as response:
+                body = json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode("utf-8", errors="replace")
+            raise RuntimeError(f"Gemini request failed ({exc.code}): {detail}") from exc
+        except urllib.error.URLError as exc:
+            raise RuntimeError(f"Gemini unreachable: {exc.reason}") from exc
+
+        try:
+            parts = body["candidates"][0]["content"]["parts"]
+            content = "".join(part.get("text", "") for part in parts)
+            return json.loads(content)
+        except (KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
+            raise RuntimeError("Gemini returned an invalid JSON response.") from exc
+
     @staticmethod
     def _parse_display(display, unit_hint=""):
         text = (display or "").strip()
@@ -93,7 +168,7 @@ class AIService:
 
     @classmethod
     def meal_plan_from_recipe(cls, recipe, people, language="en"):
-        """Build an AIMealPlan-shaped payload from a local recipe (no OpenAI)."""
+        """Build an AIMealPlan-shaped payload from a local recipe (no AI provider)."""
         from app.services.calculator_service import QuantityCalculatorService
 
         quantities, error = QuantityCalculatorService.calculate_for_recipe(recipe, people)
@@ -145,12 +220,12 @@ class AIService:
                 "dish": dish,
                 "people": people,
                 "language": language,
-                "source": "openai",
+                "source": cls.provider(),
             }
         )
         data = cls._chat(system, user)
         data["people"] = people
-        data["source"] = data.get("source") or "openai"
+        data["source"] = data.get("source") or cls.provider()
         data["language"] = language
         data.setdefault("dish", dish)
         data.setdefault("category", "General")
@@ -203,10 +278,12 @@ class AIService:
             "(array of {name, category, match_percentage, description, missing_ingredients, why}), "
             "source. Write text in the requested language. Prefer realistic home cooking."
         )
-        user = json.dumps({"ingredients": ingredients, "language": language, "source": "openai"})
+        user = json.dumps(
+            {"ingredients": ingredients, "language": language, "source": cls.provider()}
+        )
         data = cls._chat(system, user, temperature=0.5)
         data["available_ingredients"] = ingredients
-        data["source"] = data.get("source") or "openai"
+        data["source"] = data.get("source") or cls.provider()
         suggestions = data.get("suggestions") or []
         data["suggestions"] = suggestions
         data["count"] = len(suggestions)
@@ -242,10 +319,12 @@ class AIService:
             "the unit name must be localized. Return ONLY JSON with keys: dish, description, "
             "ingredients (same shape as input), steps, tips, language, source."
         )
-        user = json.dumps({"content": content, "language": language, "source": "openai"})
+        user = json.dumps(
+            {"content": content, "language": language, "source": cls.provider()}
+        )
         data = cls._chat(system, user, temperature=0.2)
         data["language"] = language
-        data["source"] = data.get("source") or "openai"
+        data["source"] = data.get("source") or cls.provider()
         data.setdefault("dish", content.get("dish") or "")
         data.setdefault("description", content.get("description") or "")
         data.setdefault("ingredients", content.get("ingredients") or [])

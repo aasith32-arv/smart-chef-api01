@@ -5,6 +5,14 @@ from app.extensions import db
 from app.models import Ingredient, Recipe, User
 
 
+@pytest.fixture(autouse=True)
+def isolate_ai_credentials(monkeypatch):
+    """Prevent a developer's local AI credentials from causing network calls in tests."""
+    monkeypatch.setenv("AI_PROVIDER", "none")
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+
+
 @pytest.fixture()
 def app():
     application = create_app(

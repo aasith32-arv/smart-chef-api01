@@ -32,7 +32,9 @@ class AIController:
         if AIService.is_configured():
             try:
                 plan = AIService.generate_meal_plan(dish, people, language)
-                return success_response(plan, "Meal plan generated with OpenAI.")
+                return success_response(
+                    plan, f"Meal plan generated with {AIService.provider().title()}."
+                )
             except Exception as exc:
                 # Fall through to local recipe library
                 local_error = str(exc)
@@ -43,10 +45,10 @@ class AIController:
         if not recipe:
             message = f"Recipe '{dish}' not found."
             if local_error:
-                message = f"{message} OpenAI also failed: {local_error}"
+                message = f"{message} AI provider also failed: {local_error}"
             elif not AIService.is_configured():
                 message = (
-                    f"{message} Add OPENAI_API_KEY for AI plans on unknown dishes."
+                    f"{message} Configure an AI provider for plans on unknown dishes."
                 )
             return error_response(message, 404)
 
@@ -80,9 +82,11 @@ class AIController:
         if AIService.is_configured():
             try:
                 result = AIService.generate_suggestions(cleaned, language)
-                return success_response(result, "Suggestions generated with OpenAI.")
+                return success_response(
+                    result, f"Suggestions generated with {AIService.provider().title()}."
+                )
             except Exception:
-                # Prefer local matching when OpenAI is unavailable.
+                # Prefer local matching when the selected provider is unavailable.
                 pass
 
         recommendations = RecommendationService.recommend(

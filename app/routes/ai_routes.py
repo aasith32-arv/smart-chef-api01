@@ -8,14 +8,14 @@ ai_bp = Blueprint("ai", __name__, url_prefix="/ai")
 
 @ai_bp.route("/status", methods=["GET"])
 def ai_status():
-    """Return whether OpenAI is configured and the API is reachable."""
+    """Return whether an AI provider is configured and the API is reachable."""
     return AIController.status()
 
 
 @ai_bp.route("/plan", methods=["POST"])
 @limiter.limit("20 per minute")
 def ai_plan():
-    """Generate a scaled meal plan (OpenAI when configured, else local recipes)."""
+    """Generate a scaled meal plan (AI provider when configured, else local recipes)."""
     return AIController.plan()
 
 
