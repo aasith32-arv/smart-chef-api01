@@ -20,6 +20,36 @@ The API supports SQLite for local development and MySQL for deployment. Authenti
 - Database migrations and sample recipe seed data
 - Health check, structured request logging, and optional Sentry monitoring
 - Automated tests with pytest
+- AI Cooking Intelligence with structured sequences, heat/timing guidance, observable doneness,
+  transformations, personalization, substitutions, troubleshooting, and deterministic fallback
+
+## AI Cooking Intelligence
+
+The cooking intelligence API extends existing recipes without replacing their original steps.
+Plans use curated `cooking_steps` rows when present and otherwise generate clearly labeled
+rule-based guidance from stored recipe instructions.
+
+Endpoints:
+
+- `GET|POST /api/v1/recipes/<id>/cooking-plan`
+- `GET /api/v1/recipes/<id>/cooking-steps`
+- `POST /api/v1/cooking/troubleshoot`
+- `POST /api/v1/cooking/substitute`
+- `POST /api/v1/cooking/explain`
+
+Apply the additive schema migration before using these endpoints:
+
+```bash
+.venv/bin/python -m flask --app run:app db upgrade
+python3 run.py
+```
+
+No new environment variables are required. Existing `AI_PROVIDER`, `OPENAI_API_KEY`, and
+`GEMINI_API_KEY` settings optionally enhance explanation-oriented endpoints. Ordinary cooking-plan
+generation remains deterministic and works without AI.
+
+See [AI Cooking Intelligence Architecture](docs/AI_COOKING_INTELLIGENCE_ARCHITECTURE.md) for the
+module flow, validation boundary, safety behavior, limitations, and extension points.
 
 ## Technology Stack
 

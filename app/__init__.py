@@ -177,6 +177,7 @@ def create_app(config_overrides=None):
                     "calculator": f"POST {API_V1_PREFIX}/calculate",
                     "recommendation": f"POST {API_V1_PREFIX}/recommend",
                     "ai": f"{API_V1_PREFIX}/ai/*",
+                    "cooking_intelligence": f"{API_V1_PREFIX}/cooking/*",
                     "favorites": f"{API_V1_PREFIX}/favorites",
                 },
             }

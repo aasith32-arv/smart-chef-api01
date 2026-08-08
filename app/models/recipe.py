@@ -26,6 +26,13 @@ class Recipe(db.Model):
     favorites = db.relationship(
         "Favorite", back_populates="recipe", cascade="all, delete-orphan", lazy="dynamic"
     )
+    cooking_steps = db.relationship(
+        "CookingStep",
+        back_populates="recipe",
+        cascade="all, delete-orphan",
+        lazy="select",
+        order_by="CookingStep.step_number",
+    )
 
     def to_dict(self, include_ingredients=True):
         data = {
