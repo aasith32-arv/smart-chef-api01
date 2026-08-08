@@ -1,5 +1,6 @@
 from app.services.ai_service import AIService
 from app.services.auth_service import AuthService
+from app.services.billing_service import BillingConfigurationError, BillingService
 from app.services.calculator_service import QuantityCalculatorService
 from app.services.favorite_service import FavoriteService
 from app.services.recipe_service import RecipeService
@@ -14,4 +15,6 @@ __all__ = [
     "RecommendationService",
     "FavoriteService",
     "TokenBlocklistService",
+    "BillingService",
+    "BillingConfigurationError",
 ]

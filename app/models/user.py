@@ -20,6 +20,15 @@ class User(db.Model):
     favorites = db.relationship(
         "Favorite", back_populates="user", cascade="all, delete-orphan", lazy="dynamic"
     )
+    billing_customer = db.relationship(
+        "BillingCustomer", back_populates="user", cascade="all, delete-orphan", uselist=False
+    )
+    subscriptions = db.relationship(
+        "Subscription", back_populates="user", cascade="all, delete-orphan", lazy="dynamic"
+    )
+    advertising_orders = db.relationship(
+        "AdvertisingOrder", back_populates="user", cascade="all, delete-orphan", lazy="dynamic"
+    )
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)

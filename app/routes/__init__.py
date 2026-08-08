@@ -1,5 +1,6 @@
 from app.routes.ai_routes import ai_bp
 from app.routes.auth_routes import auth_bp
+from app.routes.billing_routes import billing_bp
 from app.routes.calculator_routes import calculator_bp
 from app.routes.cooking_routes import cooking_bp
 from app.routes.favorite_routes import favorite_bp
@@ -17,6 +18,7 @@ def register_blueprints(app):
     """
     for blueprint in (
         auth_bp,
+        billing_bp,
         recipe_bp,
         calculator_bp,
         recommendation_bp,

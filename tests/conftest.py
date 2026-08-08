@@ -22,6 +22,12 @@ def app():
             "JWT_COOKIE_SECURE": False,
             "JWT_COOKIE_CSRF_PROTECT": False,
             "RATELIMIT_ENABLED": False,
+            "STRIPE_PUBLISHABLE_KEY": "",
+            "STRIPE_SECRET_KEY": "",
+            "STRIPE_WEBHOOK_SECRET": "",
+            "STRIPE_SUBSCRIPTION_PRICE_ID": "",
+            "STRIPE_ADVERTISING_PRICE_ID": "",
+            "FRONTEND_URL": "http://localhost:3000",
         }
     )
 

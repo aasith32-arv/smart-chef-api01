@@ -1,3 +1,9 @@
+from app.models.billing import (
+    AdvertisingOrder,
+    BillingCustomer,
+    StripeWebhookEvent,
+    Subscription,
+)
 from app.models.cooking_step import CookingStep, CookingStepIngredient
 from app.models.favorite import Favorite
 from app.models.ingredient import Ingredient
@@ -13,4 +19,8 @@ __all__ = [
     "TokenBlocklist",
     "CookingStep",
     "CookingStepIngredient",
+    "BillingCustomer",
+    "Subscription",
+    "AdvertisingOrder",
+    "StripeWebhookEvent",
 ]

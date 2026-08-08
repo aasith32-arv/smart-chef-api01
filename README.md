@@ -51,6 +51,36 @@ generation remains deterministic and works without AI.
 See [AI Cooking Intelligence Architecture](docs/AI_COOKING_INTELLIGENCE_ARCHITECTURE.md) for the
 module flow, validation boundary, safety behavior, limitations, and extension points.
 
+## Stripe billing
+
+Authenticated users can purchase an LKR 1,200 monthly Premium subscription or an LKR 2,000
+one-time advertising package through Stripe-hosted Checkout. Advertising payments create an order
+in `under_review`; they never publish content automatically.
+
+Billing endpoints:
+
+- `POST /api/v1/billing/checkout/subscription`
+- `POST /api/v1/billing/checkout/advertising`
+- `POST /api/v1/billing/portal`
+- `GET /api/v1/billing/status`
+- `POST /api/v1/billing/webhook`
+
+Configure `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and `FRONTEND_URL`. Reusable Stripe Dashboard
+prices can be set with `STRIPE_SUBSCRIPTION_PRICE_ID` and `STRIPE_ADVERTISING_PRICE_ID`; otherwise
+the server supplies trusted inline LKR prices. `STRIPE_PUBLISHABLE_KEY` is retained for future
+embedded payment UI, but Stripe-hosted Checkout does not expose or require it in the browser.
+
+For local webhook testing:
+
+```bash
+stripe listen --forward-to localhost:5000/api/v1/billing/webhook
+```
+
+In production, register the HTTPS webhook URL in Stripe and subscribe to `checkout.session.completed`,
+`checkout.session.async_payment_succeeded`, `customer.subscription.created`,
+`customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid`, and
+`invoice.payment_failed`. Use the signing secret for that exact endpoint.
+
 ## Technology Stack
 
 - Python 3.10+

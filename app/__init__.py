@@ -86,7 +86,17 @@ def create_app(config_overrides=None):
     jwt.init_app(app)
     limiter.init_app(app)
 
-    from app.models import Favorite, Ingredient, Recipe, TokenBlocklist, User  # noqa: F401
+    from app.models import (  # noqa: F401
+        AdvertisingOrder,
+        BillingCustomer,
+        Favorite,
+        Ingredient,
+        Recipe,
+        StripeWebhookEvent,
+        Subscription,
+        TokenBlocklist,
+        User,
+    )
 
     @jwt.user_lookup_loader
     def user_lookup_callback(_jwt_header, jwt_data):
@@ -179,6 +189,7 @@ def create_app(config_overrides=None):
                     "ai": f"{API_V1_PREFIX}/ai/*",
                     "cooking_intelligence": f"{API_V1_PREFIX}/cooking/*",
                     "favorites": f"{API_V1_PREFIX}/favorites",
+                    "billing": f"{API_V1_PREFIX}/billing/*",
                 },
             }
         )
