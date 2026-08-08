@@ -70,6 +70,11 @@ prices can be set with `STRIPE_SUBSCRIPTION_PRICE_ID` and `STRIPE_ADVERTISING_PR
 the server supplies trusted inline LKR prices. `STRIPE_PUBLISHABLE_KEY` is retained for future
 embedded payment UI, but Stripe-hosted Checkout does not expose or require it in the browser.
 
+For a Vercel frontend proxying to Railway, configure Railway with `JWT_COOKIE_SECURE=true`,
+`JWT_COOKIE_SAMESITE=Lax`, `JWT_COOKIE_CSRF_PROTECT=true`, and leave `JWT_COOKIE_DOMAIN` unset.
+Set `FRONTEND_URL` to the canonical Vercel/custom-domain URL. The proxy keeps JWT and CSRF cookies
+first-party; API responses are marked `private, no-store` to prevent CDN caching.
+
 For local webhook testing:
 
 ```bash

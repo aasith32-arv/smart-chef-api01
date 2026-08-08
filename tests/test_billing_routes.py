@@ -14,7 +14,9 @@ def auth_headers(app, user_id):
 
 
 def test_billing_routes_require_authentication(client):
-    assert client.get("/api/v1/billing/status").status_code == 401
+    status_response = client.get("/api/v1/billing/status")
+    assert status_response.status_code == 401
+    assert status_response.headers["Cache-Control"] == "private, no-store"
     assert client.post("/api/v1/billing/checkout/subscription").status_code == 401
     assert client.post("/api/v1/billing/checkout/advertising").status_code == 401
     assert client.post("/api/v1/billing/portal").status_code == 401

@@ -155,6 +155,8 @@ def create_app(config_overrides=None):
             '{"method":"%s","path":"%s","status":%s,"latency_ms":%s}'
             % (request.method, request.path, response.status_code, latency_ms)
         )
+        if request.path.startswith(API_V1_PREFIX):
+            response.headers["Cache-Control"] = "private, no-store"
         return response
 
     @app.route("/", methods=["GET"])
