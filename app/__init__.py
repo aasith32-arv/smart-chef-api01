@@ -247,18 +247,45 @@ def create_app(config_overrides=None):
 
     @jwt.expired_token_loader
     def expired_token_callback(jwt_header, jwt_payload):
+        app.logger.warning(
+            '"expired token" "path":"%s" "sub":"%s"' % (request.path, jwt_payload.get("sub"))
+        )
         return jsonify({"success": False, "message": "Token has expired."}), 401
 
     @jwt.invalid_token_loader
     def invalid_token_callback(error):
+        app.logger.warning(
+            '"invalid token" "path":"%s" "reason":"%s" "has_auth_header":%s "has_cookie":%s'
+            % (
+                request.path,
+                error,
+                bool(request.headers.get("Authorization")),
+                bool(request.cookies.get("access_token_cookie")),
+            )
+        )
         return jsonify({"success": False, "message": "Invalid token."}), 401
 
     @jwt.unauthorized_loader
     def missing_token_callback(error):
+        app.logger.warning(
+            '"missing token" "path":"%s" "method":"%s" "reason":"%s" '
+            '"has_auth_header":%s "auth_header_prefix":"%s" "has_cookie":%s'
+            % (
+                request.path,
+                request.method,
+                error,
+                bool(request.headers.get("Authorization")),
+                (request.headers.get("Authorization", "")[:10] or "none"),
+                bool(request.cookies.get("access_token_cookie")),
+            )
+        )
         return jsonify({"success": False, "message": "Authorization token is required."}), 401
 
     @jwt.revoked_token_loader
     def revoked_token_callback(jwt_header, jwt_payload):
+        app.logger.warning(
+            '"revoked token" "path":"%s" "jti":"%s"' % (request.path, jwt_payload.get("jti"))
+        )
         return jsonify({"success": False, "message": "Token has been revoked."}), 401
 
     return app
