@@ -59,12 +59,16 @@ def _seed_families(data_dir):
     created = 0
     updated = 0
     by_slug = {}
+    existing_by_slug = {
+        family.slug.casefold(): family for family in DishFamily.query.all()
+    }
     for item in _read_json(path):
         slug = item.get("slug") or slugify(item["name"])
-        family = DishFamily.query.filter(DishFamily.slug.ilike(slug)).first()
+        family = existing_by_slug.get(slug.casefold())
         if family is None:
             family = DishFamily(slug=slug)
             db.session.add(family)
+            existing_by_slug[slug.casefold()] = family
             created += 1
         elif family.managed_by_admin:
             by_slug[slug] = family
@@ -79,29 +83,21 @@ def _seed_families(data_dir):
     return by_slug, created, updated
 
 
-def _new_recipe(item, family):
-    recipe = Recipe(
-        name=item["name"],
-        slug=item.get("slug") or slugify(item["name"]),
-        category=item["category"],
-        family=family,
-        description=item.get("description", ""),
-        serving_size=item["serving_size"],
-        steps=item["steps"],
-        image=item.get("image") or "",
-    )
+def _recipe_values(item, family):
+    values = {
+        "name": item["name"],
+        "slug": item.get("slug") or slugify(item["name"]),
+        "category": item["category"],
+        "family_id": family.id if family else None,
+        "description": item.get("description", ""),
+        "serving_size": item["serving_size"],
+        "steps": item["steps"],
+        "image": item.get("image") or "",
+    }
     for field in RECIPE_METADATA_FIELDS:
         if field in item:
-            setattr(recipe, field, item[field])
-    for ingredient in item["ingredients"]:
-        recipe.ingredients.append(
-            Ingredient(
-                name=ingredient["name"].strip(),
-                quantity=ingredient["quantity"],
-                unit=ingredient["unit"].strip(),
-            )
-        )
-    return recipe
+            values[field] = item[field]
+    return values
 
 
 def _enrich_existing_recipe(recipe, item, family):
@@ -133,6 +129,17 @@ def seed_recipes():
     skipped = 0
     seen_slugs = set()
     seen_names = set()
+    # Load existing identities once. Querying inside this loop triggers an autoflush
+    # for every newly added recipe, which makes production seeding prohibitively slow
+    # over a remote MySQL connection.
+    existing_recipes = Recipe.query.all()
+    recipes_by_slug = {
+        recipe.slug.casefold(): recipe for recipe in existing_recipes if recipe.slug
+    }
+    recipes_by_name = {
+        recipe.name.strip().casefold(): recipe for recipe in existing_recipes
+    }
+    new_items = []
 
     for item in catalog:
         slug = item.get("slug") or slugify(item["name"])
@@ -149,9 +156,9 @@ def seed_recipes():
                 f"Recipe '{item['name']}' references unknown family '{family_slug}'."
             )
 
-        existing = Recipe.query.filter(Recipe.slug.ilike(slug)).first()
+        existing = recipes_by_slug.get(slug.casefold())
         if existing is None:
-            existing = Recipe.query.filter(Recipe.name.ilike(item["name"].strip())).first()
+            existing = recipes_by_name.get(normalized_name)
         if existing is not None:
             if _enrich_existing_recipe(existing, item, family):
                 enriched += 1
@@ -159,8 +166,33 @@ def seed_recipes():
                 skipped += 1
             continue
 
-        db.session.add(_new_recipe(item, family))
+        new_items.append((item, family))
         created += 1
+
+    if new_items:
+        # Use set-based inserts so remote MySQL seeding does not require a network
+        # round trip for every recipe and every ingredient.
+        db.session.execute(
+            db.insert(Recipe),
+            [_recipe_values(item, family) for item, family in new_items],
+        )
+        new_slugs = [item.get("slug") or slugify(item["name"]) for item, _ in new_items]
+        inserted_recipes = Recipe.query.filter(Recipe.slug.in_(new_slugs)).all()
+        inserted_by_slug = {recipe.slug: recipe for recipe in inserted_recipes}
+        ingredient_rows = []
+        for item, _ in new_items:
+            slug = item.get("slug") or slugify(item["name"])
+            recipe = inserted_by_slug[slug]
+            ingredient_rows.extend(
+                {
+                    "recipe_id": recipe.id,
+                    "name": ingredient["name"].strip(),
+                    "quantity": ingredient["quantity"],
+                    "unit": ingredient["unit"].strip(),
+                }
+                for ingredient in item["ingredients"]
+            )
+        db.session.execute(db.insert(Ingredient), ingredient_rows)
 
     db.session.commit()
     result = {
