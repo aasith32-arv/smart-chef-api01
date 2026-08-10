@@ -1,3 +1,8 @@
+from app.validators.admin_validator import (
+    validate_admin_family,
+    validate_admin_recipe,
+    validate_admin_user_update,
+)
 from app.validators.auth_validator import validate_login, validate_profile_update, validate_register
 from app.validators.calculator_validator import validate_calculate
 from app.validators.favorite_validator import validate_favorite_create
@@ -13,4 +18,7 @@ __all__ = [
     "validate_calculate",
     "validate_recommend",
     "validate_favorite_create",
+    "validate_admin_recipe",
+    "validate_admin_family",
+    "validate_admin_user_update",
 ]

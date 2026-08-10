@@ -10,6 +10,8 @@ The API supports SQLite for local development and MySQL for deployment. Authenti
 - HTTP-only JWT cookies with CSRF protection
 - Bearer-token support for tools such as Swagger and Postman
 - Recipe CRUD operations with ingredients and preparation steps
+- Backward-compatible category → dish family → recipe variety discovery
+- Curated catalog of 23 families and 189 scalable recipes
 - Ingredient quantity scaling for any number of people
 - Recipe recommendations based on available ingredients
 - Per-user favorite recipes
@@ -20,8 +22,27 @@ The API supports SQLite for local development and MySQL for deployment. Authenti
 - Database migrations and sample recipe seed data
 - Health check, structured request logging, and optional Sentry monitoring
 - Automated tests with pytest
+- Database-backed Admin authorization, catalog management, account moderation, and audit logging
 - AI Cooking Intelligence with structured sequences, heat/timing guidance, observable doneness,
   transformations, personalization, substitutions, troubleshooting, and deterministic fallback
+
+## Dish families and recipe varieties
+
+`DishFamily` groups related recipes while each final variety remains an ordinary `Recipe`. The
+`family_id` relationship and recipe metadata are nullable, so existing user-created recipes,
+favorites, calculator requests, and `/recipes/{id}` URLs continue working.
+
+Apply all migrations through `d491b7a0c2e5`, then run the existing idempotent seeder. It adds or enriches records
+by stable slug/name without deleting existing recipes or replacing IDs.
+
+Endpoints:
+
+- `GET /api/v1/dish-families`
+- `GET /api/v1/dish-families/<slug>`
+- `GET /api/v1/dish-families/<slug>/recipes`
+
+`GET /api/v1/recipes` also supports family, cuisine, region, protein, diet, difficulty, spice, and
+maximum-cooking-time filters. Search includes family and recipe discovery metadata.
 
 ## AI Cooking Intelligence
 
@@ -74,6 +95,26 @@ For a Vercel frontend proxying to Railway, configure Railway with `JWT_COOKIE_SE
 `JWT_COOKIE_SAMESITE=Lax`, `JWT_COOKIE_CSRF_PROTECT=true`, and leave `JWT_COOKIE_DOMAIN` unset.
 Set `FRONTEND_URL` to the canonical Vercel/custom-domain URL. The proxy keeps JWT and CSRF cookies
 first-party; API responses are marked `private, no-store` to prevent CDN caching.
+
+## Admin management
+
+Admin APIs reuse the existing recipe and billing services and are protected by `@admin_required`.
+The decorator verifies the JWT, reloads the current user, and requires both `role=admin` and an
+active account. Public recipe APIs expose only records with `publication_status=published`.
+
+Create the first Admin securely with the interactive CLI:
+
+```bash
+.venv/bin/python -m flask --app run:app create-admin
+```
+
+No default Admin password exists. Registration cannot set a role. Admin recipe edits retain the
+same recipe ID and relationships; deactivation uses publication status instead of deleting catalog
+content. Admin-managed seed records are not overwritten on subsequent seed runs.
+
+Admin endpoints are rooted at `/api/v1/admin` and cover dashboard aggregates, recipes, dish
+families, categories, users, advertisements, payments, and safe settings. Mutation actions are
+recorded in `admin_audit_logs`.
 
 For local webhook testing:
 
@@ -195,7 +236,7 @@ flask --app run:app db upgrade
 
 SQLite is used by default and creates `instance/aichef.db` automatically.
 
-### 6. Seed sample recipes
+### 6. Seed the curated recipe catalog
 
 ```bash
 python run_seeders.py
@@ -253,8 +294,11 @@ The default URLs are:
 | `MAX_PAGE_SIZE` | `50` | Maximum recipe page size |
 | `CORS_ORIGINS` | Local frontend URLs | Comma-separated allowed origins; wildcard is rejected |
 | `RATELIMIT_STORAGE_URI` | `memory://` | Rate-limit storage backend |
+| `AI_PROVIDER` | `auto` | Provider selection: `auto`, `openai`, or `gemini` |
 | `OPENAI_API_KEY` | Empty | Enables OpenAI-backed AI features |
 | `OPENAI_MODEL` | `gpt-4o-mini` | Model used by AI endpoints |
+| `GEMINI_API_KEY` | Empty | Enables Gemini-backed AI features |
+| `GEMINI_MODEL` | `gemini-flash-latest` | Model used for Gemini requests |
 | `SENTRY_DSN` | Empty | Enables Sentry when supplied |
 | `SENTRY_ENVIRONMENT` | `development` | Sentry environment name |
 | `SENTRY_TRACES_SAMPLE_RATE` | `0.0` | Sentry trace sampling rate |
@@ -308,7 +352,10 @@ API tools may authenticate protected routes with:
 Authorization: Bearer <access-token>
 ```
 
-There is currently no admin role and no default admin email or password. Every account is a normal user account. Passwords are stored as hashes and cannot be read back as plain text.
+Accounts have a database-backed `user` or `admin` role and an active/suspended status. There is no
+default Admin email or password; use the interactive `create-admin` command. Passwords are stored
+as hashes and cannot be read back as plain text. Suspended accounts are rejected during login,
+refresh, and protected-request token verification.
 
 ## API Response Format
 
@@ -403,6 +450,22 @@ Set `partial=false` on `/recommend` to exclude recipes that are not complete ing
 | `POST` | `/api/v1/ai/translate` | No | Translate structured recipe content |
 
 Meal plans and suggestions fall back to locally stored recipes when OpenAI is unavailable. Translation returns the original content when no AI key is configured.
+
+### Administration
+
+| Method | Endpoint | Authentication | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/admin/dashboard` | Admin | Aggregate statistics and recent activity |
+| `GET`, `POST` | `/api/v1/admin/recipes` | Admin | Paginated recipes and transactional creation |
+| `GET`, `PUT`, `DELETE` | `/api/v1/admin/recipes/{id}` | Admin | Detail, edit, and deactivate |
+| `POST` | `/api/v1/admin/recipes/{id}/duplicate` | Admin | Duplicate as a new draft |
+| `GET`, `POST` | `/api/v1/admin/dish-families` | Admin | List and create families |
+| `PUT`, `DELETE` | `/api/v1/admin/dish-families/{id}` | Admin | Edit or safely delete an empty family |
+| `GET`, `PATCH` | `/api/v1/admin/categories` | Admin | Aggregate and rename categories |
+| `GET`, `PATCH` | `/api/v1/admin/users[/{id}]` | Admin | List and moderate accounts |
+| `GET`, `PATCH` | `/api/v1/admin/advertisements[/{id}]` | Admin | List and moderate paid ads |
+| `GET` | `/api/v1/admin/payments` | Admin | Read-only subscription monitoring |
+| `GET` | `/api/v1/admin/settings` | Admin | Non-sensitive configuration status |
 
 ## Request Examples
 
@@ -609,9 +672,10 @@ curl http://localhost:5000/api/v1/recipes
 
 Ensure the frontend sends cookies, reads the CSRF cookie, and supplies its value in the `X-CSRF-TOKEN` header for protected state-changing requests.
 
-### OpenAI features use local results
+### AI features use local results
 
-Check `/api/v1/ai/status`, then verify that `.env` contains a valid `OPENAI_API_KEY` and supported `OPENAI_MODEL`.
+Check `/api/v1/ai/status`, then verify that `AI_PROVIDER` and the matching API key/model are set in
+`smart-chef-api01/.env`. Restart the Flask backend after changing environment variables.
 
 ### CORS fails at startup
 

@@ -66,7 +66,8 @@ class AIService:
         else:
             message = (
                 "AI provider key missing or provider invalid. Local recipes still work. "
-                "Set AI_PROVIDER and the matching API key in smart-chef-api/.env."
+                "Set AI_PROVIDER and the matching API key in smart-chef-api01/.env, "
+                "then restart the backend."
             )
         return {
             "configured": configured,

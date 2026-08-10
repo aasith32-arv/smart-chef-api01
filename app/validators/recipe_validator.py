@@ -1,3 +1,73 @@
+import re
+
+OPTIONAL_TEXT_FIELDS = (
+    "cuisine",
+    "region",
+    "protein",
+    "diet_type",
+    "difficulty",
+    "spice_level",
+)
+
+
+def _validate_optional_metadata(data, cleaned, errors, *, partial):
+    if "slug" in data:
+        slug = data.get("slug")
+        if slug in (None, ""):
+            cleaned["slug"] = None
+        elif not isinstance(slug, str) or not re.fullmatch(
+            r"[a-z0-9]+(?:-[a-z0-9]+)*", slug.strip()
+        ):
+            errors["slug"] = "slug must contain lowercase letters, numbers, and hyphens."
+        else:
+            cleaned["slug"] = slug.strip()
+
+    if "family_id" in data:
+        family_id = data.get("family_id")
+        if family_id is None:
+            cleaned["family_id"] = None
+        elif not isinstance(family_id, int) or isinstance(family_id, bool) or family_id < 1:
+            errors["family_id"] = "family_id must be a positive integer or null."
+        else:
+            cleaned["family_id"] = family_id
+
+    for field in OPTIONAL_TEXT_FIELDS:
+        if field not in data:
+            continue
+        value = data.get(field)
+        if value in (None, ""):
+            cleaned[field] = None
+        elif not isinstance(value, str):
+            errors[field] = f"{field} must be a string or null."
+        else:
+            cleaned[field] = value.strip()
+
+    for field in ("prep_time", "cook_time"):
+        if field not in data:
+            continue
+        value = data.get(field)
+        if value is None:
+            cleaned[field] = None
+        elif not isinstance(value, int) or isinstance(value, bool) or value < 0:
+            errors[field] = f"{field} must be a non-negative integer or null."
+        else:
+            cleaned[field] = value
+
+    if "tags" in data:
+        tags = data.get("tags")
+        if tags is None:
+            cleaned["tags"] = []
+        elif not isinstance(tags, list) or not all(
+            isinstance(tag, str) and tag.strip() for tag in tags
+        ):
+            errors["tags"] = "tags must be a list of non-empty strings."
+        else:
+            cleaned["tags"] = list(dict.fromkeys(tag.strip().lower() for tag in tags))
+
+    if not partial:
+        cleaned.setdefault("tags", [])
+
+
 def _validate_ingredient(ingredient, index):
     errors = {}
     if not isinstance(ingredient, dict):
@@ -90,10 +160,7 @@ def validate_recipe_create(data):
     if step_errors:
         errors.update(step_errors)
 
-    if errors:
-        return None, errors
-
-    return {
+    cleaned = {
         "name": name,
         "category": category,
         "description": description,
@@ -101,7 +168,12 @@ def validate_recipe_create(data):
         "image": image,
         "ingredients": cleaned_ingredients,
         "steps": steps,
-    }, None
+    }
+    _validate_optional_metadata(data, cleaned, errors, partial=False)
+
+    if errors:
+        return None, errors
+    return cleaned, None
 
 
 def validate_recipe_update(data):
@@ -172,6 +244,8 @@ def validate_recipe_update(data):
             errors.update(step_errors)
         else:
             cleaned["steps"] = steps
+
+    _validate_optional_metadata(data, cleaned, errors, partial=True)
 
     if errors:
         return None, errors

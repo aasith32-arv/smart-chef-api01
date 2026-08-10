@@ -29,6 +29,17 @@ class AIController:
         if errors:
             return error_response("Validation failed.", 400, errors)
 
+        # Known recipes should be instant and deterministic. Calling a remote
+        # provider first makes the calculator wait up to the provider timeout
+        # even though the complete recipe already exists locally.
+        recipe = RecipeService.get_by_name(dish)
+        if recipe:
+            try:
+                plan = AIService.meal_plan_from_recipe(recipe, people, language)
+            except ValueError as exc:
+                return error_response(str(exc), 400)
+            return success_response(plan, "Meal plan generated from local recipes.")
+
         if AIService.is_configured():
             try:
                 plan = AIService.generate_meal_plan(dish, people, language)
@@ -41,23 +52,12 @@ class AIController:
         else:
             local_error = None
 
-        recipe = RecipeService.get_by_name(dish)
-        if not recipe:
-            message = f"Recipe '{dish}' not found."
-            if local_error:
-                message = f"{message} AI provider also failed: {local_error}"
-            elif not AIService.is_configured():
-                message = (
-                    f"{message} Configure an AI provider for plans on unknown dishes."
-                )
-            return error_response(message, 404)
-
-        try:
-            plan = AIService.meal_plan_from_recipe(recipe, people, language)
-        except ValueError as exc:
-            return error_response(str(exc), 400)
-
-        return success_response(plan, "Meal plan generated from local recipes.")
+        message = f"Recipe '{dish}' not found."
+        if local_error:
+            message = f"{message} AI provider also failed: {local_error}"
+        elif not AIService.is_configured():
+            message = f"{message} Configure an AI provider for plans on unknown dishes."
+        return error_response(message, 404)
 
     @staticmethod
     def suggest():

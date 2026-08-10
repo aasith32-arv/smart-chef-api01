@@ -2,6 +2,7 @@ import logging
 import os
 import time
 
+import click
 from flasgger import Swagger
 from flask import Flask, g, jsonify, request
 from flask_cors import CORS
@@ -87,8 +88,10 @@ def create_app(config_overrides=None):
     limiter.init_app(app)
 
     from app.models import (  # noqa: F401
+        AdminAuditLog,
         AdvertisingOrder,
         BillingCustomer,
+        DishFamily,
         Favorite,
         Ingredient,
         Recipe,
@@ -106,6 +109,18 @@ def create_app(config_overrides=None):
     @jwt.token_in_blocklist_loader
     def check_if_token_revoked(_jwt_header, jwt_payload):
         return TokenBlocklistService.is_blocklisted(jwt_payload.get("jti"))
+
+    @jwt.token_verification_loader
+    def verify_active_account(_jwt_header, jwt_payload):
+        try:
+            user = db.session.get(User, int(jwt_payload["sub"]))
+        except (KeyError, TypeError, ValueError):
+            return False
+        return bool(user and user.is_active)
+
+    @jwt.token_verification_failed_loader
+    def inactive_account_callback(_jwt_header, _jwt_payload):
+        return jsonify({"success": False, "message": "This account is not active."}), 403
 
     register_blueprints(app)
 
@@ -222,6 +237,41 @@ def create_app(config_overrides=None):
 
         seed_recipes()
         print("Database seeded successfully.")
+
+    @app.cli.command("create-admin")
+    @click.option("--email", prompt=True, help="Admin email address.")
+    @click.option("--username", prompt=True, help="Unique admin username.")
+    @click.option("--full-name", default=None, help="Optional display name.")
+    @click.password_option(
+        confirmation_prompt=True,
+        prompt="Admin password",
+    )
+    def create_admin_command(email, username, full_name, password):
+        """Create the first admin securely from the backend CLI."""
+        email = email.strip().lower()
+        username = username.strip()
+        if "@" not in email:
+            raise click.ClickException("A valid email address is required.")
+        if len(username) < 3:
+            raise click.ClickException("Username must contain at least 3 characters.")
+        if len(password) < 12:
+            raise click.ClickException("Admin password must contain at least 12 characters.")
+        if User.query.filter(
+            (User.email == email) | (User.username == username)
+        ).first():
+            raise click.ClickException("That email or username already exists.")
+
+        user = User(
+            email=email,
+            username=username,
+            full_name=full_name.strip() if full_name else None,
+            role="admin",
+            is_active=True,
+        )
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+        click.echo(f"Admin account created for {email}.")
 
     @app.errorhandler(HTTPException)
     def handle_http_exception(err):

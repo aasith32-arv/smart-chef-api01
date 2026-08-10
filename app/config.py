@@ -16,6 +16,8 @@ def _env_bool(name: str, default: bool = False) -> bool:
 class Config:
     """Application configuration loaded from environment variables."""
 
+    DEBUG = _env_bool("FLASK_DEBUG", default=False)
+
     # Development fallbacks are deliberately long enough for HS256. Production
     # deployments should always set unique values through environment variables.
     SECRET_KEY = os.getenv(

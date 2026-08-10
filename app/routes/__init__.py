@@ -1,8 +1,10 @@
+from app.routes.admin_routes import admin_bp
 from app.routes.ai_routes import ai_bp
 from app.routes.auth_routes import auth_bp
 from app.routes.billing_routes import billing_bp
 from app.routes.calculator_routes import calculator_bp
 from app.routes.cooking_routes import cooking_bp
+from app.routes.dish_family_routes import dish_family_bp
 from app.routes.favorite_routes import favorite_bp
 from app.routes.recipe_routes import recipe_bp
 from app.routes.recommendation_routes import recommendation_bp
@@ -25,6 +27,8 @@ def register_blueprints(app):
         favorite_bp,
         ai_bp,
         cooking_bp,
+        dish_family_bp,
+        admin_bp,
     ):
         bp_prefix = blueprint.url_prefix or ""
         app.register_blueprint(

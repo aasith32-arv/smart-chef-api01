@@ -18,10 +18,11 @@ from app.validators import validate_login, validate_profile_update, validate_reg
 
 class AuthController:
     @staticmethod
-    def _issue_auth_cookies(response, user_id: int):
-        identity = str(user_id)
-        access_token = create_access_token(identity=identity)
-        refresh_token = create_refresh_token(identity=identity)
+    def _issue_auth_cookies(response, user: User):
+        identity = str(user.id)
+        claims = {"role": user.role}
+        access_token = create_access_token(identity=identity, additional_claims=claims)
+        refresh_token = create_refresh_token(identity=identity, additional_claims=claims)
         set_access_cookies(response, access_token)
         set_refresh_cookies(response, refresh_token)
         return response
@@ -41,7 +42,7 @@ class AuthController:
             "User registered successfully.",
             status,
         )
-        AuthController._issue_auth_cookies(response, user.id)
+        AuthController._issue_auth_cookies(response, user)
         return response, code
 
     @staticmethod
@@ -53,18 +54,25 @@ class AuthController:
         user = AuthService.get_by_email(cleaned["email"])
         if not user or not user.check_password(cleaned["password"]):
             return error_response("Invalid email or password.", 401)
+        if not user.is_active:
+            return error_response("This account has been suspended.", 403)
 
         response, code = success_response(
             {"user": user.to_dict()},
             "Login successful.",
         )
-        AuthController._issue_auth_cookies(response, user.id)
+        AuthController._issue_auth_cookies(response, user)
         return response, code
 
     @staticmethod
     def refresh():
         identity = get_jwt_identity()
-        access_token = create_access_token(identity=identity)
+        user = db.session.get(User, int(identity))
+        if not user or not user.is_active:
+            return error_response("This account is not active.", 403)
+        access_token = create_access_token(
+            identity=identity, additional_claims={"role": user.role}
+        )
         response, code = success_response(message="Access token refreshed.")
         set_access_cookies(response, access_token)
         return response, code
@@ -109,6 +117,14 @@ class AuthController:
         user = db.session.get(User, int(get_jwt_identity()))
         if not user:
             return error_response("User not found.", 404)
+        if (
+            user.role == "admin"
+            and user.is_active
+            and User.query.filter_by(role="admin", is_active=True).count() <= 1
+        ):
+            return error_response(
+                "The final active admin account cannot be deleted.", 409
+            )
 
         TokenBlocklistService.revoke_decoded(get_jwt())
         refresh_name = current_app.config.get(

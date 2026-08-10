@@ -134,6 +134,13 @@ class CookingPlanService:
         data = step.to_dict()
         stage = CookingSequenceEngine.classify_stage(step.instruction)
         names = [item["name"] for item in data["ingredients"]]
+        if not names:
+            names = [
+                ingredient.name
+                for ingredient in CookingSequenceEngine.ingredients_for_step(
+                    step.instruction, step.recipe.ingredients
+                )
+            ]
         timing = {
             "minimum_minutes": step.minimum_duration or step.duration or 0,
             "maximum_minutes": step.maximum_duration or step.duration or 0,
@@ -142,13 +149,12 @@ class CookingPlanService:
             "source": "stored",
         }
         temperature = TemperatureEngine.guidance(stage, names)
-        temperature.update(
-            {
-                "heat_level": step.heat_level or temperature["heat_level"],
-                "minimum_c": step.temperature_min,
-                "maximum_c": step.temperature_max,
-            }
-        )
+        temperature["heat_level"] = step.heat_level or temperature["heat_level"]
+        # Curated guidance may improve ordinary technique, but it must never
+        # replace deterministic food-safety temperatures for meat or fish.
+        if not temperature["food_safety"]:
+            temperature["minimum_c"] = step.temperature_min
+            temperature["maximum_c"] = step.temperature_max
         ingredients = []
         for addition in data["ingredients"]:
             scaled = scaled_by_id.get(addition["id"])

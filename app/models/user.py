@@ -12,6 +12,8 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(256), nullable=False)
     full_name = db.Column(db.String(120), nullable=True)
+    role = db.Column(db.String(20), nullable=False, default="user", index=True)
+    is_active = db.Column(db.Boolean, nullable=False, default=True, index=True)
     created_at = db.Column(db.DateTime, default=utc_now, nullable=False)
     updated_at = db.Column(
         db.DateTime, default=utc_now, onupdate=utc_now, nullable=False
@@ -29,6 +31,9 @@ class User(db.Model):
     advertising_orders = db.relationship(
         "AdvertisingOrder", back_populates="user", cascade="all, delete-orphan", lazy="dynamic"
     )
+    admin_audit_entries = db.relationship(
+        "AdminAuditLog", back_populates="admin", lazy="dynamic", passive_deletes=True
+    )
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -42,6 +47,8 @@ class User(db.Model):
             "username": self.username,
             "email": self.email,
             "full_name": self.full_name,
+            "role": self.role,
+            "is_active": self.is_active,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
         }

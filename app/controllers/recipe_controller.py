@@ -17,7 +17,20 @@ class RecipeController:
     @classmethod
     def list(cls):
         page, per_page = cls._pagination_params()
-        result = RecipeService.get_all(page, per_page, request.args.get("search"), request.args.get("category"))
+        result = RecipeService.get_all(
+            page=page,
+            per_page=per_page,
+            search=request.args.get("search"),
+            category=request.args.get("category"),
+            family=request.args.get("family"),
+            cuisine=request.args.get("cuisine"),
+            region=request.args.get("region"),
+            protein=request.args.get("protein"),
+            diet_type=request.args.get("diet_type"),
+            difficulty=request.args.get("difficulty"),
+            spice_level=request.args.get("spice_level"),
+            max_cook_time=request.args.get("max_cook_time", type=int),
+        )
         return success_response(result, "Recipes retrieved successfully.")
 
     @staticmethod
