@@ -45,7 +45,9 @@ def substitute():
           required: [ingredient]
           properties:
             ingredient: {type: string, example: yogurt}
+            ingredient_id: {type: integer}
             recipe_id: {type: integer}
+            servings: {type: integer, minimum: 1}
             recipe_context: {type: string}
             use_ai: {type: boolean, default: false}
     responses:

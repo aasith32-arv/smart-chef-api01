@@ -1,3 +1,7 @@
+from app.extensions import db
+from app.models import DishFamily, Ingredient, Recipe
+
+
 def test_get_cooking_plan_with_scaled_servings(client, sample_recipe):
     sample_recipe.steps = [
         "Heat oil.",
@@ -55,6 +59,71 @@ def test_substitution_route_is_contextual(client, sample_recipe):
     result = response.get_json()["data"]
     assert result["options"][0]["how_much"]
     assert result["options"][0]["what_changes"]
+
+
+def test_biryani_substitution_uses_trusted_recipe_and_scaled_ingredient(app, client):
+    family = DishFamily(
+        name="Biryani",
+        slug="biryani",
+        description="Layered rice dishes",
+        category="Rice Dishes",
+        is_active=True,
+    )
+    recipe = Recipe(
+        name="Hyderabadi Chicken Biryani",
+        slug="hyderabadi-chicken-biryani-test",
+        category="Rice Dishes",
+        family=family,
+        cuisine="Indian",
+        region="Hyderabad",
+        serving_size=4,
+        steps=["Parboil the rice and layer for dum."],
+    )
+    rice = Ingredient(name="Basmati rice", quantity=500, unit="g")
+    recipe.ingredients.append(rice)
+    db.session.add(recipe)
+    db.session.commit()
+
+    response = client.post(
+        "/api/v1/cooking/substitute",
+        json={
+            "ingredient": "untrusted name is ignored",
+            "ingredient_id": rice.id,
+            "recipe_id": recipe.id,
+            "servings": 50,
+        },
+    )
+
+    assert response.status_code == 200
+    result = response.get_json()["data"]
+    assert result["ingredient"] == "Basmati rice"
+    assert result["original_display"] == "6.2 kg"
+    assert result["source"] == "contextual-rule-based"
+    assert len(result["options"]) == 3
+    assert result["options"][0]["suitability"] == "Best Match"
+    assert result["options"][0]["display_quantity"] == "6.2 kg"
+
+
+def test_known_recipe_without_verified_substitute_returns_safe_empty_state(
+    client, sample_recipe
+):
+    chicken = next(item for item in sample_recipe.ingredients if item.name == "Chicken")
+    response = client.post(
+        "/api/v1/cooking/substitute",
+        json={
+            "ingredient": chicken.name,
+            "ingredient_id": chicken.id,
+            "recipe_id": sample_recipe.id,
+            "servings": 8,
+            "use_ai": True,
+        },
+    )
+
+    assert response.status_code == 200
+    result = response.get_json()["data"]
+    assert result["options"] == []
+    assert result["no_substitute_reason"]
+    assert result["original_display"] == "1 kg"
 
 
 def test_recipe_mutation_still_requires_authentication(client):

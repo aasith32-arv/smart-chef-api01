@@ -7,6 +7,7 @@ from app.ai import (
 )
 from app.cooking_intelligence import CookingPlanService, TroubleshootingEngine
 from app.services import RecipeService
+from app.services.calculator_service import QuantityCalculatorService
 from app.utils.responses import error_response, success_response
 
 
@@ -61,6 +62,11 @@ class CookingController:
             )
         context = str(data.get("recipe_context") or "")
         recipe_id = data.get("recipe_id")
+        recipe = None
+        recipe_ingredient = None
+        original_quantity = None
+        original_unit = None
+        original_display = None
         if recipe_id:
             try:
                 recipe = RecipeService.get_by_id(int(recipe_id))
@@ -70,9 +76,62 @@ class CookingController:
                 )
             if not recipe:
                 return error_response("Recipe not found.", 404)
-            context = f"{recipe.name}: {recipe.description or ''}"
+            ingredient_id = data.get("ingredient_id")
+            if ingredient_id is not None:
+                try:
+                    ingredient_id = int(ingredient_id)
+                except (TypeError, ValueError):
+                    return error_response(
+                        "Validation failed.",
+                        400,
+                        {"ingredient_id": "ingredient_id must be an integer."},
+                    )
+                recipe_ingredient = next(
+                    (item for item in recipe.ingredients if item.id == ingredient_id), None
+                )
+                if not recipe_ingredient:
+                    return error_response("Ingredient not found in this recipe.", 404)
+                ingredient = recipe_ingredient.name
+            else:
+                recipe_ingredient = next(
+                    (
+                        item
+                        for item in recipe.ingredients
+                        if item.name.strip().casefold() == ingredient.casefold()
+                    ),
+                    None,
+                )
+
+            servings = data.get("servings", recipe.serving_size)
+            if not isinstance(servings, int) or isinstance(servings, bool) or servings < 1:
+                return error_response(
+                    "Validation failed.",
+                    400,
+                    {"servings": "servings must be a positive integer."},
+                )
+            if recipe_ingredient:
+                factor = QuantityCalculatorService.calculate_scale_factor(
+                    servings, recipe.serving_size
+                )
+                original_quantity = recipe_ingredient.quantity * factor
+                original_unit = recipe_ingredient.unit
+                original_display = QuantityCalculatorService.format_quantity(
+                    original_quantity, original_unit
+                )
+            family = recipe.family.name if recipe.family else ""
+            context = (
+                f"{recipe.name}; family={family}; category={recipe.category}; "
+                f"cuisine={recipe.cuisine or ''}; region={recipe.region or ''}; "
+                f"ingredients={', '.join(item.name for item in recipe.ingredients)}"
+            )
         result = CookingRecommendationService.substitute(
-            ingredient, context, bool(data.get("use_ai", False))
+            ingredient,
+            context,
+            bool(data.get("use_ai", False)),
+            recipe=recipe,
+            original_quantity=original_quantity,
+            original_unit=original_unit,
+            original_display=original_display,
         )
         return success_response(result, "Substitution guidance generated.")
 
