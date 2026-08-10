@@ -273,6 +273,26 @@ def create_app(config_overrides=None):
         db.session.commit()
         click.echo(f"Admin account created for {email}.")
 
+    @app.cli.command("reset-user-password")
+    @click.option("--email", prompt=True, help="Email address of the account to recover.")
+    @click.password_option(
+        confirmation_prompt=True,
+        prompt="New password",
+    )
+    def reset_user_password_command(email, password):
+        """Reset an existing password without exposing it in source or shell history."""
+        email = email.strip().lower()
+        if len(password) < 12:
+            raise click.ClickException(
+                "The new password must contain at least 12 characters."
+            )
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            raise click.ClickException("No account exists for that email address.")
+        user.set_password(password)
+        db.session.commit()
+        click.echo(f"Password reset completed for {email}.")
+
     @app.errorhandler(HTTPException)
     def handle_http_exception(err):
         return jsonify({"success": False, "message": err.description}), err.code

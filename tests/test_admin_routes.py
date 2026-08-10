@@ -88,6 +88,33 @@ def test_create_admin_cli_is_controlled(app):
     assert duplicate.exit_code != 0
 
 
+def test_password_reset_cli_recovers_existing_account(app, sample_user):
+    runner = app.test_cli_runner()
+    result = runner.invoke(
+        args=[
+            "reset-user-password",
+            "--email",
+            sample_user.email,
+            "--password",
+            "a-new-secure-password",
+        ]
+    )
+    assert result.exit_code == 0
+    db.session.refresh(sample_user)
+    assert sample_user.check_password("a-new-secure-password") is True
+
+    missing = runner.invoke(
+        args=[
+            "reset-user-password",
+            "--email",
+            "missing@example.com",
+            "--password",
+            "another-secure-password",
+        ]
+    )
+    assert missing.exit_code != 0
+
+
 def test_normal_user_cannot_access_admin_api(app, client, sample_user):
     response = client.get(
         "/api/v1/admin/dashboard", headers=auth_headers(app, sample_user)

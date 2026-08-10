@@ -112,6 +112,13 @@ No default Admin password exists. Registration cannot set a role. Admin recipe e
 same recipe ID and relationships; deactivation uses publication status instead of deleting catalog
 content. Admin-managed seed records are not overwritten on subsequent seed runs.
 
+If an existing user cannot remember their password, recover it interactively on the trusted
+backend host. The new password is hidden while typing and is never stored in shell history:
+
+```bash
+.venv/bin/python -m flask --app run:app reset-user-password
+```
+
 Admin endpoints are rooted at `/api/v1/admin` and cover dashboard aggregates, recipes, dish
 families, categories, users, advertisements, payments, and safe settings. Mutation actions are
 recorded in `admin_audit_logs`.
